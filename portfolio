@@ -1,0 +1,168 @@
+<!DOCTYPE html> 
+ <html> 
+   <head> 
+     <title>My Crypto Portfolio</title> 
+   </head> 
+   <body> 
+     <h1>My Crypto Portfolio</h1> 
+  <table> 
+       <thead> 
+         <tr> 
+           <th>Asset</th> 
+           <th>Etherscan Balance (ETH)</th> 
+           <th>Etherscan Balance (USD)</th> 
+           <th>Arbiscan Balance (ETH)</th> 
+           <th>Arbiscan Balance (USD)</th> 
+           <th>Total Balance (ETH)</th> 
+           <th>Total Balance (USD)</th> 
+         </tr> 
+       </thead> 
+       <tbody id="portfolioTableBody"></tbody> 
+     </table> 
+  
+     <script> 
+       const EthapiKey = 'MY_ETHERSCAN_API_KEY'; 
+       const ArbapiKey = 'MY_ARBISCAN_API_KEY'; 
+       const addresses = [ 
+         'ADDRESS 1', 
+         'ADDRESS 2', 
+         'ADDRESS n' 
+       ]; 
+  
+       async function fetchPrices() { 
+         const response = await fetch(`https://api.etherscan.io/api?module=stats&action=ethprice&apikey=${EthapiKey}`); 
+         const data = await response.json(); 
+         return parseFloat(data.result.ethusd); 
+       } 
+  
+       async function fetchBalancesFromEtherscan() { 
+         const balances = []; 
+         for (let i = 0; i < addresses.length; i++) { 
+           const address = addresses[i]; 
+           const response = await fetch(`https://api.etherscan.io/api?module=account&action=balance&address=${address}&tag=latest&apikey=${EthapiKey}`); 
+           const data = await response.json(); 
+           const balance = parseInt(data.result) / 10 ** 18; // convert from wei to ETH 
+           balances.push(balance); 
+         } 
+         return balances; 
+       } 
+  
+       async function fetchBalancesFromArbiscan() { 
+         const balances = []; 
+         for (let i = 0; i < addresses.length; i++) { 
+           const address = addresses[i]; 
+           const response = await fetch(`https://api.arbiscan.io/api?module=account&action=balance&address=${address}&tag=latest&apikey=${ArbapiKey}`); 
+           const data = await response.json(); 
+           const balance = parseInt(data.result) / 10 ** 18; // convert from wei to ETH 
+           balances.push(balance); 
+         } 
+         return balances; 
+       } 
+  
+ async function updatePortfolioTable() { 
+   const ethBalances = await fetchBalancesFromEtherscan(); 
+   const arbBalances = await fetchBalancesFromArbiscan(); 
+   const ethPrice = await fetchPrices(); 
+  
+   const portfolioTableBody = document.getElementById('portfolioTableBody'); 
+   portfolioTableBody.innerHTML = ''; 
+  
+   let totalEthBalance = 0; 
+   let totalEthValue = 0; 
+   let totalArbBalance = 0; 
+   let totalArbValue = 0; 
+   let totalBalance = 0; 
+   let totalValue = 0; 
+  
+   for (let i = 0; i < addresses.length; i++) { 
+     const address = addresses[i]; 
+     const ethBalance = ethBalances[i]; 
+     const ethValue = ethBalance * ethPrice; 
+     const arbBalance = arbBalances[i]; 
+     const arbValue = arbBalance * ethPrice; 
+     const balance = ethBalance + ethBalance; 
+     const value = balance * ethPrice; 
+  
+     totalEthBalance += ethBalance; 
+     totalEthValue += ethValue; 
+     totalArbBalance += arbBalance; 
+     totalArbValue += arbValue; 
+     totalBalance += balance; 
+     totalValue += value; 
+  
+     const row = document.createElement('tr'); 
+  
+     const assetCell = document.createElement('td'); 
+     assetCell.innerText = 'ETH'; 
+     row.appendChild(assetCell); 
+  
+     const ethBalanceCell = document.createElement('td'); 
+     ethBalanceCell.innerText = ethBalance.toFixed(6); 
+     row.appendChild(ethBalanceCell); 
+  
+     const ethValueCell = document.createElement('td'); 
+     ethValueCell.innerText = formatCurrency(ethValue, 'USD'); 
+     row.appendChild(ethValueCell); 
+  
+     const arbBalanceCell = document.createElement('td'); 
+     arbBalanceCell.innerText = arbBalance.toFixed(6); 
+     row.appendChild(arbBalanceCell); 
+  
+     const arbValueCell = document.createElement('td'); 
+     arbValueCell.innerText = formatCurrency(arbValue, 'USD'); 
+     row.appendChild(arbValueCell); 
+  
+     const totalBalanceCell = document.createElement('td'); 
+     totalBalanceCell.innerText = balance.toFixed(6); 
+     row.appendChild(totalBalanceCell); 
+  
+     const totalValueCell = document.createElement('td'); 
+     totalValueCell.innerText = formatCurrency(value, 'USD'); 
+     row.appendChild(totalValueCell); 
+  
+     portfolioTableBody.appendChild(row); 
+   } 
+  
+   const totalRow = document.createElement('tr'); 
+  
+   const totalAssetCell = document.createElement('td'); 
+   totalAssetCell.colSpan = 1; 
+   totalAssetCell.innerText = 'Total:'; 
+   totalRow.appendChild(totalAssetCell); 
+  
+   const totalEthBalanceCell = document.createElement('td'); 
+   totalEthBalanceCell.innerText = totalEthBalance.toFixed(6); 
+   totalRow.appendChild(totalEthBalanceCell); 
+  
+   const totalEthValueCell = document.createElement('td'); 
+   totalEthValueCell.innerText = formatCurrency(totalEthValue, 'USD'); 
+   totalRow.appendChild(totalEthValueCell); 
+  
+   const totalArbBalanceCell = document.createElement('td'); 
+   totalArbBalanceCell.innerText = totalArbBalance.toFixed(6); 
+   totalRow.appendChild(totalArbBalanceCell); 
+  
+   const totalArbValueCell = document.createElement('td'); 
+   totalArbValueCell.innerText = formatCurrency(totalArbValue, 'USD'); 
+   totalRow.appendChild(totalArbValueCell); 
+  
+   const totalBalanceCell = document.createElement('td'); 
+   totalBalanceCell.innerText = totalBalance.toFixed(6); 
+   totalRow.appendChild(totalBalanceCell); 
+  
+   const totalValueCell = document.createElement('td'); 
+   totalValueCell.innerText = formatCurrency(totalValue, 'USD'); 
+   totalRow.appendChild(totalValueCell); 
+  
+   portfolioTableBody.appendChild(totalRow); 
+       } 
+  
+       function formatCurrency(amount) { 
+         return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount); 
+       } 
+  
+  
+       updatePortfolioTable(); 
+     </script> 
+   </body> 
+ </html>
